@@ -1,0 +1,9 @@
+# Goal
+geometry_msgs/Pose obj_pose
+---
+# Result
+geometry_msgs/Pose final_pose
+---
+# Feedback
+bool grabbed
+geometry_msgs/Pose current_pose

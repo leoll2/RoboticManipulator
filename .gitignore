@@ -1,0 +1,6 @@
+**/*.catkin_tools
+**/*.idea
+**/*.pyc
+**/*build
+**/*devel
+**/*logs

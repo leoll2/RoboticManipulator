@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>pick_and_place_planner</name>
+  <version>1.0.0</version>
+  <description>The pick_and_place_planner package</description>
+
+  <maintainer email="leonardo.lai@live.com">leoll2</maintainer>
+
+  <license>MIT</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+  <buildtool_depend>catkin_simple</buildtool_depend>
+
+  <depend>actionlib</depend>
+  <depend>actionlib_msgs</depend>
+  <depend>geometry_msgs</depend>
+  <depend>message_generation</depend>
+  <depend>message_runtime</depend>
+  <depend>smach</depend>
+  <depend>smach_viewer</depend>
+  <depend>std_msgs</depend>
+
+</package>
