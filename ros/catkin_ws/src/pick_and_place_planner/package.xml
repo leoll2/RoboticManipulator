@@ -19,5 +19,6 @@
   <depend>smach</depend>
   <depend>smach_viewer</depend>
   <depend>std_msgs</depend>
+  <depend>tf</depend>
 
 </package>

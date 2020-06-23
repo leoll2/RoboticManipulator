@@ -1,5 +1,7 @@
 #! /usr/bin/env python
 
+
+import numpy as np
 import rospy
 import actionlib
 from geometry_msgs.msg import Pose
@@ -12,53 +14,87 @@ class PickActionServer:
 
     def __init__(self):
 
+        self.last_ee_pose = Pose()
+        self.last_ee_pose.position.x = self.last_ee_pose.position.y = self.last_ee_pose.position.z = 1000  # unreachable
+        self.obj_pose = Pose()
+        self.obj_pose.position.x = self.obj_pose.position.y = self.obj_pose.position.z = 0  # default very far from ee
+        self.max_seconds = 60
+        self.active = False
+
         self.a_server = actionlib.SimpleActionServer(
             "pick_action_server",
             PickAction,
             execute_cb=self.execute_cb,
             auto_start=False)
 
-        self.a_server.register_preempt_callback(self.preemptCB)
-
         self.a_server.start()
         rospy.loginfo("Started PickActionServer")
 
-        self._sub = rospy.Subscriber("/end_effector_pose", Pose, callback=self.eePoseCB)
+        self.sub = rospy.Subscriber("/end_effector/pose", Pose, callback=self.ee_pose_cb)
+        self.pub = rospy.Publisher('/end_effector/target_pose', Pose, queue_size=1)
 
-    def eePoseCB(self, data):
+    def object_nearby(self):
+        """ Returns True if the end effector is very close to the object, False otherwise """
 
-        rospy.loginfo("eePoseCB")
-        # TODO controlla se la posizione e' giusta e nel caso conferma un succeeded
-        # success = True
-        # feedback = PickFeedback()
-        # result = PickResult()
-        # last_dish_washed = 'bowl-' + str(i)
-        # feedback.last_dish_washed = last_dish_washed
-        # result.dishes_washed.append(last_dish_washed)
-        # self.a_server.publish_feedback(feedback)
-        # if success:
-        #     self.a_server.set_succeeded(result)
-        pass
+        ee_pos = np.array((self.last_ee_pose.position.x, self.last_ee_pose.position.y, self.last_ee_pose.position.z))
+        obj_pos = np.array((self.obj_pose.position.x, self.obj_pose.position.y, self.obj_pose.position.z))
+        dist = np.linalg.norm(ee_pos - obj_pos)
+        print("Distance: " + str(dist))
+        return dist < 0.05
 
-    def preemptCB(self):
+    def ee_pose_cb(self, msg):
 
-        rospy.loginfo("preemptCB")
-        self.a_server.set_preempted()
+        if not self.active:
+            return
+        # rospy.loginfo("PickActionServer: received EE pose update: " + str(msg.position))
+        self.last_ee_pose = msg
 
     def execute_cb(self, goal):
 
-        rospy.loginfo("executeCB")
-        obj_pose = goal.obj_pose
-        # TODO publish desired position
+        rospy.loginfo("Going to pick object located at (%.3f, %.3f, %.3f)..." %
+                      (goal.obj_pose.position.x, goal.obj_pose.position.y, goal.obj_pose.position.z))
+        self.obj_pose = goal.obj_pose
+        self.active = True
+        self.pub.publish(goal.obj_pose)
 
-        result = PickResult()        # TODO this is provisional
-        result.final_pose = obj_pose  # TODO this is provisional
-        self.a_server.set_succeeded(result)  # TODO this is provisional
+        result = PickResult()
+        rate = rospy.Rate(1)
+        elapsed = 0
+        success = False
+        while elapsed < self.max_seconds:
+            # Check if preempted (if so, abort)
+            if self.a_server.is_preempt_requested():
+                self.a_server.set_preempted()
+                self.active = False
+                return
+            elif self.object_nearby():
+                rospy.loginfo("...picked!")
+                success = True
+                break
+            else:
+                # TODO publish feedback
+                pass
+            elapsed += 1
+            rate.sleep()
+
+        self.active = False
+        if success:
+            self.a_server.set_succeeded(result)
+        else:
+            print("Aborted picking")
+            self.a_server.set_aborted()
 
 
 class PlaceActionServer:
 
     def __init__(self):
+
+        self.last_ee_pose = Pose()
+        self.last_ee_pose.position.x = self.last_ee_pose.position.y = self.last_ee_pose.position.z = 1000  # unreachable
+        self.dest_pose = Pose()
+        self.dest_pose.position.x = self.dest_pose.position.y = self.dest_pose.position.z = 0  # default very far from ee
+        self.active = False
+        self.max_seconds = 60
 
         self.a_server = actionlib.SimpleActionServer(
             "place_action_server",
@@ -66,31 +102,61 @@ class PlaceActionServer:
             execute_cb=self.execute_cb,
             auto_start=False)
 
-        self.a_server.register_preempt_callback(self.preemptCB)
-
         self.a_server.start()
         rospy.loginfo("Started PlaceActionServer")
 
-        self._sub = rospy.Subscriber("/end_effector_pose", Pose, callback=self.eePoseCB)
+        self.sub = rospy.Subscriber("/end_effector/pose", Pose, callback=self.ee_pose_cb)
+        self.pub = rospy.Publisher('/end_effector/target_pose', Pose, queue_size=1)
 
-    def eePoseCB(self, data):
-        # TODO
-        rospy.loginfo("eePoseCB")
+    def destination_nearby(self):
+        """ Returns True if the end effector is very close to the destination, False otherwise """
 
-    def preemptCB(self):
+        ee_pos = np.array((self.last_ee_pose.position.x, self.last_ee_pose.position.y, self.last_ee_pose.position.z))
+        dest_pos = np.array((self.dest_pose.position.x, self.dest_pose.position.y, self.dest_pose.position.z))
+        dist = np.linalg.norm(ee_pos - dest_pos)
+        print("Distance: " + str(dist))
+        return dist < 0.05
 
-        rospy.loginfo("preemptCB")
-        self.a_server.set_preempted()
+    def ee_pose_cb(self, msg):
+
+        if not self.active:
+            return
+        self.last_ee_pose = msg
 
     def execute_cb(self, goal):
 
-        rospy.loginfo("executeCB")
-        target_pose = goal.target_pose
-        # TODO publish desired position
+        rospy.loginfo("Going to place object to (%.3f, %.3f, %.3f)..." %
+                      (goal.target_pose.position.x, goal.target_pose.position.y, goal.target_pose.position.z))
+        self.dest_pose = goal.target_pose
+        self.active = True
+        self.pub.publish(goal.target_pose)
 
-        result = PlaceResult()        # TODO this is provisional
-        result.final_pose = target_pose  # TODO this is provisional
-        self.a_server.set_succeeded(result)  # TODO this is provisional
+        result = PlaceResult()
+        rate = rospy.Rate(1)
+        elapsed = 0
+        success = False
+        while elapsed < self.max_seconds:
+            # Check if preempted (if so, abort)
+            if self.a_server.is_preempt_requested():
+                self.a_server.set_preempted()
+                self.active = False
+                return
+            elif self.destination_nearby():
+                rospy.loginfo("...placed!")
+                success = True
+                break
+            else:
+                # TODO publish feedback
+                pass
+            elapsed += 1
+            rate.sleep()
+
+        self.active = False
+        if success:
+            self.a_server.set_succeeded(result)
+        else:
+            print("Aborted placing")
+            self.a_server.set_aborted()
 
 
 if __name__ == "__main__":

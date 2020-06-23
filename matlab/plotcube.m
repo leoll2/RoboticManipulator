@@ -15,6 +15,6 @@ function [] = plotcube(c, l)
     y = [cy; cy] + [ly/2*sin(a+ph); ly/2*sin(a+ph)]/sin(ph);
     z = [cz; cz] + [lz/2*-ones(size(a)); lz/2*ones(size(a))];
     surf(x, y, z, 'FaceColor', 'g')                      % Plot Cube
-    patch(x', y', z', 'r')                              % Make Cube Appear Solid
+    patch(x', y', z', 'r')                               % Make Cube Appear Solid
     hold off
 end
