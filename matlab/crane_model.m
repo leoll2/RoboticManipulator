@@ -2,7 +2,7 @@ function [robot] = crane_model()
     %% Parameters
     % lenghts [dm]
     j1_z = 0.2;   % height of the joint between mast and boom
-    j1_x = -0.1;  % horizontal offset of the join between mast and boom
+    j1_x = -0.15;  % horizontal offset of the join between mast and boom
     boom_l = 0.3; % length of the boom 
     jib_l = 0.5;  % length of the jib
 
@@ -35,9 +35,12 @@ function [robot] = crane_model()
 
     %% Joint limits
     % angles [rad]
-    L1.qlim = [];
-    L2.qlim = [pi/6, 2*pi/3];
+    L1.qlim = [-pi, pi];   % nolimit
+    L2.qlim = [pi/6, pi/2];
     L3.qlim = [-2*pi/3, 0];
+    L4.qlim = [-pi, pi];   % nolimit
+    L5.qlim = [-pi, pi];   % nolimit
+    L6.qlim = [-pi, pi];   % nolimit
 
     %% Link masses
     % mass [kg]

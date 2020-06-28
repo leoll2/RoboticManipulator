@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import rosgraph
 import rospy
 import smach
 import smach_ros
@@ -35,9 +36,11 @@ class BlockFactory:
     def __init__(self):
 
         self.blocks = (
-            Block([0.0, 0.3, 0.0, 0.0, 0.0, 0.0], [0.0, -0.3, 0.0, 0.0, 0.0, 0.0]),
-            Block([0.1, 0.3, 0.0, 0.0, 0.0, 0.0], [0.15, -0.3, 0.0, 0.0, 0.0, 0.0]),
-            Block([0.2, 0.3, 0.0, 0.0, 0.0, 0.0], [0.3, -0.3, 0.0, 0.0, 0.0, 0.0]),
+            Block([-0.3, 0.3, 0.2, 0.0, 0.0, 0.0], [-0.15, -0.45, 0.075, 0.0, 0.0, 0.0]),
+            Block([0.4, 0.1, 0.15, 0.0, 0.0, 0.0], [0, -0.45, 0.075, 0.0, 0.0, 0.0]),
+            Block([0.4, 0.2, 0.2, 0.0, 0.0, 0.0], [-0, -0.3, 0.075, 0.0, 0.0, 0.0]),
+            Block([-0.4, 0.3, 0.15, 0.0, 0.0, 0.0], [-0.15, -0.3, 0.075, 0.0, 0.0, 0.0]),
+            Block([0, 0.4, 0.3, 0.0, 0.0, 0.0], [-0.075, -0.375, 0.225, 0.0, 0.0, 0.0])
         )
         self.remaining_blocks = len(self.blocks)
 
@@ -70,6 +73,11 @@ class Select(smach.State):
 
 
 def main():
+
+    if not rosgraph.is_master_online():
+        print('Error: ROS master not running')
+        exit(1)
+
     rospy.init_node('pick_and_place_state_machine')
     bf = BlockFactory()
 
@@ -107,6 +115,8 @@ def main():
                                        PickAction,
                                        goal_cb=pick_goal_cb,
                                        result_cb=pick_result_cb,
+                                       # exec_timeout=rospy.Duration(30),
+                                       # preempt_timeout=rospy.Duration(5),
                                        input_keys=['start_pose', 'end_pose'],
                                        output_keys=['target_pose']
                                    ),
