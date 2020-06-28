@@ -12,7 +12,8 @@ from geometry_msgs.msg import Pose
 from std_msgs.msg import String
 from pick_and_place_controller.msg import \
      PickAction, PickGoal, PickResult, PickFeedback, \
-     PlaceAction, PlaceGoal, PlaceResult, PlaceFeedback
+     PlaceAction, PlaceGoal, PlaceResult, PlaceFeedback, \
+     RestAction, RestGoal, RestResult, RestFeedback
 
 
 class PickActionServer:
@@ -191,16 +192,40 @@ class PlaceActionServer:
             self.a_server.set_aborted()
 
 
+class RestActionServer:
+
+    def __init__(self):
+
+        self.a_server = actionlib.SimpleActionServer(
+            "rest_action_server",
+            RestAction,
+            execute_cb=self.execute_cb,
+            auto_start=False)
+
+        self.a_server.start()
+        rospy.loginfo("Started RestActionServer")
+
+        self.mode_pub = rospy.Publisher('robot/opmode', String, queue_size=1)
+
+    def execute_cb(self, goal):
+
+        rospy.loginfo("Returning to resting position")
+        self.mode_pub.publish('rest')
+        result = PlaceResult()
+        self.a_server.set_succeeded(result)
+
+
 if __name__ == "__main__":
 
     if not rosgraph.is_master_online():
         print('Error: ROS master not running')
         exit(1)
 
-    rospy.init_node("action_server")
+    rospy.init_node("pick_and_place_action_server")
 
     pick_act_srv = PickActionServer()
     place_act_srv = PlaceActionServer()
+    rest_act_srv = RestActionServer()
 
     rospy.spin()
 

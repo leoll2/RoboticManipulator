@@ -2,17 +2,18 @@ clear
 clear_figures;
 clc
 
-global q;
-global q_des;
-global T_des;
-global opmode;
-global crane;
-global placed_objs;
+global q;               % joints position
+global q0;              % initial joints position
+global q_des;           % desired joints position
+global T_des;           % desired pose (homogeneous transformation matrix)
+global opmode;          % operating mode (rest/pick/place)
+global crane;           % robot
+global placed_objs;     % list of picked-and-placed objects
 
 placed_objs = [];
 
 crane = crane_model();
-opmode = 'idle';
+opmode = 'rest';
 q0 = [pi, pi/4, -pi/2, pi/2, pi/2, -pi/2];
 q = q0;
 q_des = q;

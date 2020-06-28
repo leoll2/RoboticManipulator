@@ -10,7 +10,8 @@ from tf.transformations import quaternion_from_euler
 
 from pick_and_place_planner.msg import \
     PickAction, PickGoal, PickResult, PickFeedback, \
-    PlaceAction, PlaceGoal, PlaceResult, PlaceFeedback
+    PlaceAction, PlaceGoal, PlaceResult, PlaceFeedback, \
+    RestAction, RestGoal, RestResult, RestFeedback
 
 
 class Block:
@@ -57,7 +58,7 @@ class BlockFactory:
 class Select(smach.State):
 
     def __init__(self, block_factory):
-        smach.State.__init__(self, outcomes=['selected', 'finished'],
+        smach.State.__init__(self, outcomes=['selected', 'out_of_blocks'],
                              output_keys=['start_pose', 'end_pose'])
         self.block_factory = block_factory
 
@@ -69,7 +70,7 @@ class Select(smach.State):
             userdata.end_pose = block.end_pose
             return 'selected'
         else:
-            return 'finished'
+            return 'out_of_blocks'
 
 
 def main():
@@ -89,7 +90,7 @@ def main():
         # Add states
         smach.StateMachine.add('SELECT', Select(bf),
                                transitions={'selected': 'PICKANDPLACE',
-                                            'finished': 'finished'})
+                                            'out_of_blocks': 'REST'})
 
         # Submachine for pick-and-place
         sm_pickplace = smach.StateMachine(outcomes=['placed', 'failed'],
@@ -115,8 +116,6 @@ def main():
                                        PickAction,
                                        goal_cb=pick_goal_cb,
                                        result_cb=pick_result_cb,
-                                       # exec_timeout=rospy.Duration(30),
-                                       # preempt_timeout=rospy.Duration(5),
                                        input_keys=['start_pose', 'end_pose'],
                                        output_keys=['target_pose']
                                    ),
@@ -141,6 +140,19 @@ def main():
         smach.StateMachine.add('PICKANDPLACE', sm_pickplace,
                                transitions={'placed': 'SELECT',
                                             'failed': 'failed'})
+
+        def rest_goal_cb(userdata, goal):
+            rest_goal = RestGoal()
+            return rest_goal
+
+        smach.StateMachine.add('REST',
+                               smach_ros.SimpleActionState(
+                                   'rest_action_server',
+                                   RestAction,
+                                   goal_cb=rest_goal_cb),
+                               transitions={'succeeded': 'finished',
+                                            'preempted': 'failed',
+                                            'aborted': 'failed'})
 
     # Create and start the introspection server
     sis = smach_ros.IntrospectionServer('sm_introspection_server', sm, '/SM_ROOT')

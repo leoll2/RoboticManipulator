@@ -1,6 +1,10 @@
 % Start ROS master
 % rosshutdown()
-% rosinit('localhost',11311)
+try
+    rosnode list
+catch ex
+    rosinit('localhost',11311)
+end
 
 % Show nodes
 fprintf("Nodes: \n");
