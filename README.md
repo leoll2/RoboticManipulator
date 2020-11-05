@@ -18,10 +18,10 @@ A ROS state-machine, running locally or remotely, instructs the robot to move to
 
 ## Build
 
-*Matlab*  
+**Matlab**  
 Install the Robotics Toolbox following the instructions in the official website
 
-*ROS*  
+**ROS**  
 ```
 cd ros/catkin_ws
 catkin build
@@ -29,10 +29,10 @@ source devel/setup.bash
 ```
 
 ## Run
-*Matlab*  
+**Matlab**  
 Run `main.m`
 
-*ROS*  
+**ROS**  
 ```
 rosrun pick_and_place_controller state_machine.py
 ```
